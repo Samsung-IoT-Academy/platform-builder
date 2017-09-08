@@ -1,0 +1,77 @@
+#! /usr/bin/env perl
+
+use strict;
+use warnings;
+use v5.10;
+
+use FindBin;
+use lib "$FindBin::Bin/lib/perl";
+
+use File::Copy qw(mv);
+use File::Path qw(make_path);
+use Cwd;
+use DirHandle;
+use Git::Raw::Repository;
+
+use Getopt::Long;
+
+use KernelBuilder;
+
+make_path($ENV{'HOME'} . "/kernel_build/tizen-sourced");
+
+my $build_root = $ENV{'HOME'} . "/kernel_build/tizen-sourced";
+my $bin_root = cwd;
+
+my @args = ("ARCH=arm64", "artik710_raptor_defconfig");
+chdir($ARGV[0]);
+system "make", @args;
+merge_kconfig($ARGV[0] . "/.config", $bin_root . "/kconfig/board/unwds-artik-710/4.4.19-tizen/.config");
+mv(".config", $build_root . "/");
+system "make", "mrproper";
+
+my $repo = Git::Raw::Repository -> open($ARGV[0]);
+foreach my $tag ($repo->tags) {
+    if ($tag->name eq "origin/tizen_3.0") {
+        $repo->checkout($tag);
+        last;
+    }
+}
+my @apply_patch_opts = ("apply", $bin_root . "/kpatch/mali.patch");
+my @revert_patch_opts = ("apply", "-R", $bin_root . "/kpatch/mali.patch");
+system "git", @apply_patch_opts;
+# make O=$HOME/kernel_build/tizen-sourced ARCH=arm64 \
+# CROSS_COMPILE=$HOME/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu- \
+# Image -j8
+my @make_vmlinux = ( "O=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced", "ARCH=arm64",
+    "CROSS_COMPILE=" . $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-", "Image", "-j8" );
+system "make", @make_vmlinux;
+
+# make O=$HOME/kernel_build/tizen-sourced ARCH=arm64 \
+# CROSS_COMPILE=$HOME/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu- \
+# dtbs
+my @make_dtbs = ( "O=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced", "ARCH=arm64",
+    "CROSS_COMPILE=" . $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-", "dtbs" );
+system "make", @make_dtbs;
+
+my @prepare_modules = ( "O=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced", "ARCH=arm64",
+    "CROSS_COMPILE=" . $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-", "prepare_modules" );
+system "make", @prepare_modules;
+
+my @make_modules = ( "O=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced", "ARCH=arm64",
+    "CROSS_COMPILE=" . $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-", "modules", "-j8" );
+system "make", @make_modules;
+
+make_path($ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules");
+# make O=$HOME/kernel_build/tizen-sourced ARCH=arm64 \
+# CROSS_COMPILE=$HOME/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu- \
+# modules_install INSTALL_MOD_PATH=$HOME/kernel_build/tizen-sourced/usr/modules INSTALL_MOD_STRIP=1
+my @modules_install = ( "O=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced", "ARCH=arm64",
+    "CROSS_COMPILE=" . $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-", "modules_install",
+    "INSTALL_MOD_PATH=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules", "INSTALL_MOD_STRIP=1" );
+system "make", @modules_install;
+
+# make_ext4fs -b 4096 -L $HOME/kernel_build/tizen-sourced/usr/modules -l 32M
+# $HOME/kernel_build/tizen-sourced/usr/modules.img $HOME/kernel_build/tizen-sourced/usr/modules/lib/modules
+my @make_ext4fs_opts = ( "-b", 4096, "-L", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules",
+    "-l", "32M", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules.img", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules/lib/modules" );
+system "make_ext4fs", @make_ext4fs_opts;
