@@ -17,21 +17,27 @@ sub merge_kconfig {
 
     my %config = hashify_conf($partial_fh);
     my @main_content = <$main_fh>;
+
     @main_content = map {
-        if (m/^(?:#\ )?(?<conf_name>[\w_]*)[\s=](?<status>[ynm]|is\ not\ set)$/ and
-            $config{$+{conf_name}} and $config{$+{conf_name}} =~ /[ynm]/) {
-            my $status = $config{$+{conf_name}};
-            say $status;
-            delete $config{$+{conf_name}};
-            $+{conf_name} . "=" . $status
+        if (m/^(?:# )?(?<conf_name>CONFIG_[\w_]*)[\s=](?<status>[ynm]|is\ not\ set)$/
+            and exists $config{$+{conf_name}}) {
+            my $conf_name = $+{conf_name};
+            if ( $config{$conf_name} =~ /[ynm]/ ) {
+                my $status = $config{$conf_name};
+                delete $config{$conf_name};
+                $conf_name . "=" . $status . "\n"
+            } else {
+                $_
+            }
         } else {
             $_
         }
     } @main_content;
     foreach my $conf_opt (keys %config) {
-        push @main_content, $conf_opt . "=" . $config{$conf_opt}
+        push @main_content, $conf_opt . "=" . $config{$conf_opt} . "\n"
     }
-    push @main_content, "\n";
+
+    seek $main_fh, 0, 0;
     print $main_fh @main_content;
 
     close($main_fh);

@@ -1,8 +1,8 @@
 package KernelBuilder::Board::Artik;
 
+use v5.10;
 use Carp;
-use File::Copy qw(mv);
-use File::Path qw(make_path);
+use File::Path qw|make_path|;
 use Cwd;
 use DirHandle;
 
@@ -16,13 +16,14 @@ has _make_targets => (
 has _make_targets_jobnums => (
     is => 'ro',
     isa => sub {
-        carp "$_[0] is not an ArrayRef!" unless (ref($_[0]) eq 'ARRAY')
+        carp "$_[0] is not an HashRef!" unless (ref($_[0]) eq 'HASH')
     },
     builder => \&_build_make_targets_jobnums
 );
 
 has _make_opts => (
     is => 'lazy',
+    builder => \&_build_make_opts,
 );
 
 has _make_targets_opts => (
@@ -73,11 +74,7 @@ has kernel_src_path => (
     builder => \&_build_kernel_src_path
 );
 
-has config_file_path => (
-    is => 'ro',
-    default => undef
-);
-
+# Builders
 
 sub _build_make_targets_jobnums {
     # Returns hash which allows to look up to know whether target needs jobs param
@@ -99,19 +96,21 @@ sub _build_make_targets {
 sub _build_make_opts {
     my $self = shift;
     my $opts = {
+        ARCH                => $self->arch ,
         CROSS_COMPILE       => $self->cross_compile_prefix . $self->cross_compile ,
         INSTALL_MOD_PATH    => $self->install_mod_path ,
         INSTALL_MOD_STRIP   => 1 ,
     };
-    if (!$self->cross_compile_prefix) {
-        $opts->{O} = $self->cross_compile_prefix
+    if (defined $self->build_path) {
+        $opts->{O} = $self->build_path
     }
     return $opts;
 }
 
-sub _build_make_targets_opts {
+sub _build__make_targets_opts {
     my @default = ( "O", "ARCH", "CROSS_COMPILE" );
     return {
+        config          => [ "ARCH" ] ,
         Image           => [ @default ] ,
         prepare_modules => [ @default ] ,
         modules         => [ @default ] ,
@@ -120,7 +119,7 @@ sub _build_make_targets_opts {
     }
 }
 
-sub _build_kernel_patch_path {
+sub _build_kfiles_path {
     my $self = shift;
     my $cwd = cwd;
 
@@ -145,11 +144,13 @@ sub _build_kernel_src_path {
     return $kernel_src_path
 }
 
-after BUILD => sub {
+#####
+
+sub BUILD {
     my $self = shift;
     chdir($self->kernel_src_path);
     $self->_board_specific_preparation
-};
+}
 
 sub _build_opts {
     my $self = shift;
@@ -157,35 +158,44 @@ sub _build_opts {
     my @opts = map {
         $_ . "=" . $self->_make_opts->{$_} if exists $self->_make_opts->{$_}
     } @{$self->_make_targets_opts->{$make_tgt}};
-    push @opts, $make_tgt;
+    push @opts, $make_tgt if not $make_tgt eq "config";
     push @opts, "-j8" if exists $self->_make_targets_jobnums->{$make_tgt};
+    return @opts;
 }
 
 sub make_vmlinux {
     my $self = shift;
     my ($cmd, $target) = ("make", "Image");
-    my @opts = _build_opts($target);
-    system $cmd, @opts
+    my @opts = $self->_build_opts($target);
+    system($cmd, @opts) == 0 or die "Failed `make Image`!"
 }
 
 sub make_prepare_modules {
     my $self = shift;
     my ($cmd, $target) = ("make", "prepare_modules");
-    my @opts = _build_opts($target);
-    system $cmd, @opts
+    my @opts = $self->_build_opts($target);
+    system($cmd, @opts) == 0 or die "Failed `make prepare_modules`!"
 }
 
 sub make_modules {
     my $self = shift;
     my ($cmd, $target) = ("make", "modules");
-    my @opts = _build_opts($target);
-    system $cmd, @opts
+    my @opts = $self->_build_opts($target);
+    system($cmd, @opts) == 0 or die "Failed `make modules`!"
 }
 
 sub make_modules_install {
     my $self = shift;
     my ($cmd, $target) = ("make", "modules_install");
     make_path($self->install_mod_path);
-    my @opts = _build_opts($target);
-    system $cmd, @opts
+    my @opts = $self->_build_opts($target);
+    system($cmd, @opts) == 0 or die "Failed `make modules_install`!"
 }
+
+sub make_modules_partition {
+    my $self = shift;
+    my $cmd = "make_ext4fs";
+
+}
+
+1;

@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use v5.10;
+use Carp;
 
 use FindBin;
 use lib "$FindBin::Bin/lib/perl";
@@ -18,21 +19,33 @@ use Getopt::Long;
 use KernelBuilder;
 use KernelBuilder::Board::Artik::Artik710;
 
+
+my $msg = <<'USAGE';
+    Usage:
+    ./artik-710 <src_dir>
+USAGE
+die $msg unless $ARGV[0];
+
+my %make_ext4fs_opts = (
+    output_file_path    => $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules.img" ,
+);
 my $out_path = $ENV{'HOME'} . "/kernel_build/tizen-sourced";
 make_path($out_path);
 
 my $artik_710_builder = KernelBuilder::Board::Artik::Artik710->new(
-    build_path              => $out_path,
-    cross_compile_prefix    => $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/",
-    install_mod_path        => $out_path . "/usr/modules"
+    make_modpart_opts       => \%make_ext4fs_opts ,
 
-    kernel_src_path         => $ARGV[0],
-)
+    build_path              => $out_path ,
+    cross_compile_prefix    => $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/" ,
+    install_mod_path        => $out_path . "/usr/modules" ,
+
+    kernel_src_path         => $ARGV[0] ,
+);
 $artik_710_builder->make_vmlinux;
 $artik_710_builder->make_dtbs;
-$artik_710_builder->make_prepare_modules;
 $artik_710_builder->make_modules;
 $artik_710_builder->make_modules_install;
+$artik_710_builder->make_ext4fs_mod_part;
 
 # my $build_root = $ENV{'HOME'} . "/kernel_build/tizen-sourced";
 # my $bin_root = cwd;
@@ -85,7 +98,7 @@ $artik_710_builder->make_modules_install;
 #     "INSTALL_MOD_PATH=" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules", "INSTALL_MOD_STRIP=1" );
 # system "make", @modules_install;
 #
-# # make_ext4fs -b 4096 -L $HOME/kernel_build/tizen-sourced/usr/modules -l 32M
+# # make_ext4fs -b 4096 -L modules -l l32M
 # # $HOME/kernel_build/tizen-sourced/usr/modules.img $HOME/kernel_build/tizen-sourced/usr/modules/lib/modules
 # my @make_ext4fs_opts = ( "-b", 4096, "-L", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules",
 #     "-l", "32M", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules.img", "" . $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules/lib/modules" );
