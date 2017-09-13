@@ -28,11 +28,19 @@ has _make_opts => (
 
 has _make_targets_opts => (
     is => 'lazy',
+    builder => \&_build_make_targets_opts,
 );
 
 has _kfiles_path => (
     is => 'rwp',
     builder => \&_build_kfiles_path
+);
+
+# Defaults
+
+has __common_base_make_vars => (
+    is => 'ro',
+    default => sub { return [ "O", "ARCH", "CROSS_COMPILE" ] },
 );
 
 # Make options
@@ -107,15 +115,15 @@ sub _build_make_opts {
     return $opts;
 }
 
-sub _build__make_targets_opts {
-    my @default = ( "O", "ARCH", "CROSS_COMPILE" );
+sub _build_make_targets_opts {
+    my $self = shift;
+    my @default = @{$self->__common_base_make_vars};
     return {
         config          => [ "ARCH" ] ,
         Image           => [ @default ] ,
         prepare_modules => [ @default ] ,
         modules         => [ @default ] ,
         modules_install => [ @default, "INSTALL_MOD_PATH", "INSTALL_MOD_STRIP" ] ,
-        dtbs            => [ @default ] ,
     }
 }
 
@@ -165,6 +173,7 @@ sub _build_opts {
 
 sub make_vmlinux {
     my $self = shift;
+    use Data::Printer; p $self;
     my ($cmd, $target) = ("make", "Image");
     my @opts = $self->_build_opts($target);
     system($cmd, @opts) == 0 or die "Failed `make Image`!"

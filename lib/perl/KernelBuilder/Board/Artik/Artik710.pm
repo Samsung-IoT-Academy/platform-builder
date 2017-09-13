@@ -7,6 +7,7 @@ use File::Copy qw|mv|;
 
 use Moo;
 extends 'KernelBuilder::Board::Artik';
+with  'KernelBuilder::Feature::DeviceTree';
 
 use KernelBuilder;
 
@@ -98,15 +99,6 @@ sub _patch_kernel {
     my @apply_patch_opts =  ("apply",       $self->_kfiles_path->{patch} . "/mali.patch");
     my @revert_patch_opts = ("apply", "-R", $self->_kfiles_path->{patch} . "/mali.patch");
     system($cmd_vcs, @apply_patch_opts) == 0 or die "Failed patch kernel!";
-}
-
-sub make_dtbs {
-    my $self = shift;
-    my $cmd = "make";
-    my $target = "dtbs";
-    my @opts = $self->_build_opts($target);
-
-    system($cmd, @opts) == 0 or die "Failed `make dtbs`!";
 }
 
 sub make_ext4fs_mod_part {
