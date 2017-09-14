@@ -18,7 +18,7 @@ sub make_dtbs {
     my $target = "dtbs";
     my @opts = $self->_build_opts($target);
 
-    use Data::Printer; p @opts; p %{$self->_make_targets_opts};
+    use Data::Printer; p @opts;
     system($cmd, @opts) == 0 or die "Failed `make dtbs`!";
 }
 

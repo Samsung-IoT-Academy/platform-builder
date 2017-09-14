@@ -6,10 +6,12 @@ use v5.10;
 use Carp;
 
 use FindBin;
-use lib "$FindBin::Bin/lib/perl";
+use lib "$FindBin::Bin/../lib/perl";
 
-use File::Copy qw(mv);
-use File::Path qw(make_path);
+use List::MoreUtils qw/all/;
+
+use File::Copy qw/mv/;
+use File::Path qw/make_path/;
 use Cwd;
 use DirHandle;
 use Git::Raw::Repository;
@@ -19,12 +21,12 @@ use Getopt::Long;
 use KernelBuilder;
 use KernelBuilder::Board::Artik::Artik710;
 
+my $kernel_src_path;
 
-my $msg = <<'USAGE';
-    Usage:
-    ./artik-710 <src_dir>
-USAGE
-die $msg unless $ARGV[0];
+GetOptions(
+    'srcpath|src=s' => \$kernel_src_path
+) or die;
+die unless defined $kernel_src_path;
 
 my %make_ext4fs_opts = (
     output_file_path    => $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules.img" ,
@@ -39,7 +41,7 @@ my $artik_710_builder = KernelBuilder::Board::Artik::Artik710->new(
     cross_compile_prefix    => $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/" ,
     install_mod_path        => $out_path . "/usr/modules" ,
 
-    kernel_src_path         => $ARGV[0] ,
+    kernel_src_path         => $kernel_src_path ,
 );
 $artik_710_builder->make_vmlinux;
 $artik_710_builder->make_dtbs;

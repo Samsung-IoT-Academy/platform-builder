@@ -2,7 +2,7 @@ package KernelBuilder::Board::Artik;
 
 use v5.10;
 use Carp;
-use File::Path qw|make_path|;
+use File::Path qw/make_path/;
 use Cwd;
 use DirHandle;
 
@@ -173,7 +173,6 @@ sub _build_opts {
 
 sub make_vmlinux {
     my $self = shift;
-    use Data::Printer; p $self;
     my ($cmd, $target) = ("make", "Image");
     my @opts = $self->_build_opts($target);
     system($cmd, @opts) == 0 or die "Failed `make Image`!"

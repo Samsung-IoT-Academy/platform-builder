@@ -3,7 +3,7 @@ package KernelBuilder::Board::Artik::Artik710;
 use v5.10;
 use Carp;
 
-use File::Copy qw|mv|;
+use File::Copy qw/mv/;
 
 use Moo;
 extends 'KernelBuilder::Board::Artik';
@@ -54,7 +54,6 @@ sub _build_make_ext4fs_opts {
     );
     my @opts = ();
 
-    use Data::Printer; p %{$self->make_modpart_opts};
     foreach (keys %translation_table) {
         push @opts, $translation_table{$_};
         push @opts, $self->make_modpart_opts->{$_}
