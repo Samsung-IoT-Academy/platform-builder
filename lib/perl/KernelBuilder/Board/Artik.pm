@@ -119,7 +119,7 @@ sub _build_make_targets_opts {
     my $self = shift;
     my @default = @{$self->__common_base_make_vars};
     return {
-        config          => [ "ARCH" ] ,
+        config          => [ "O", "ARCH" ] ,
         Image           => [ @default ] ,
         prepare_modules => [ @default ] ,
         modules         => [ @default ] ,
@@ -152,13 +152,24 @@ sub _build_kernel_src_path {
     return $kernel_src_path
 }
 
-#####
+##### Moo methods
 
 sub BUILD {
     my $self = shift;
     chdir($self->kernel_src_path);
     $self->_board_specific_preparation
 }
+
+sub DEMOLISH {
+    my ($self, $in_global_destruction) = @_;
+    if ($in_global_destruction) {
+        say "IGD";
+    } else {
+        $self->_board_specific_destruction
+    }
+}
+
+#####
 
 sub _build_opts {
     my $self = shift;
@@ -204,6 +215,13 @@ sub make_modules_partition {
     my $self = shift;
     my $cmd = "make_ext4fs";
 
+}
+
+sub make_mrproper {
+    my $self = shift;
+    my ($cmd, $target) = ("make", "mrproper");
+    my @opts = ( $target );
+    system($cmd, @opts) == 0 or die "Failed `make mrproper`!"
 }
 
 1;

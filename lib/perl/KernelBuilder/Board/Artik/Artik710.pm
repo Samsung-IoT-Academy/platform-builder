@@ -3,11 +3,11 @@ package KernelBuilder::Board::Artik::Artik710;
 use v5.10;
 use Carp;
 
-use File::Copy qw/mv/;
+# use File::Copy qw/mv/;
 
 use Moo;
 extends 'KernelBuilder::Board::Artik';
-with  'KernelBuilder::Feature::DeviceTree';
+with    'KernelBuilder::Feature::DeviceTree';
 
 use KernelBuilder;
 
@@ -76,18 +76,22 @@ sub _board_specific_preparation {
     my $self = shift;
     my @config_opts = $self->_build_opts("config");
     push @config_opts, $self->config_name;
-    system "make", @config_opts;
+    system("make", @config_opts) == 0 or die "Failed create config!";
     merge_kconfig(
-        $self->kernel_src_path . "/.config",
+        $self->build_path . "/.config",
         $self->_kfiles_path->{config} . "/board/unwds-artik-710/4.4.19-tizen/.config"
     );
     $self->_patch_kernel;
-    mv(".config", $self->build_path . "/");
 }
 
-sub _patch_kernel {
+sub _board_specific_destruction {
     my $self = shift;
-    my $cmd_vcs = "git";
+    $self->_revert_patches;
+    $self->make_mrproper
+}
+
+sub _prepare_repo {
+    my $self = shift;
     my $repo = Git::Raw::Repository->open($self->kernel_src_path);
     foreach my $tag ($repo->tags) {
         if ($tag->name eq "origin/tizen_3.0") {
@@ -95,9 +99,22 @@ sub _patch_kernel {
             last;
         }
     }
+}
+
+sub _patch_kernel {
+    my $self = shift;
+    my $cmd_vcs = "git";
+    $self->_prepare_repo;
     my @apply_patch_opts =  ("apply",       $self->_kfiles_path->{patch} . "/mali.patch");
-    my @revert_patch_opts = ("apply", "-R", $self->_kfiles_path->{patch} . "/mali.patch");
     system($cmd_vcs, @apply_patch_opts) == 0 or die "Failed patch kernel!";
+}
+
+sub _revert_patches {
+    my $self = shift;
+    my $cmd_vcs = "git";
+    $self->_prepare_repo;
+    my @revert_patch_opts = ("apply", "-R", $self->_kfiles_path->{patch} . "/mali.patch");
+    system($cmd_vcs, @revert_patch_opts) == 0 or die "Failed reverting patches!";
 }
 
 sub make_ext4fs_mod_part {
