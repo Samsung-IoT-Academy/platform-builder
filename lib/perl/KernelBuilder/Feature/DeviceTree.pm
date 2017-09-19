@@ -14,8 +14,7 @@ around _build_make_targets_opts => sub {
 
 sub make_dtbs {
     my $self = shift;
-    my $cmd = "make";
-    my $target = "dtbs";
+    my ($cmd, $target) = ("make", "dtbs");
     my @opts = $self->_build_opts($target);
 
     use Data::Printer; p @opts;
