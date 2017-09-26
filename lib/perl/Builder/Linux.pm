@@ -1,4 +1,4 @@
-package KernelBuilder;
+package Builder::Linux;
 
 use strict;
 use warnings;
@@ -6,8 +6,10 @@ use v5.10;
 
 use Scalar::Util "openhandle";
 
+use Term::ANSIColor;
+
 use Exporter "import";
-our @EXPORT = qw(merge_kconfig);
+our @EXPORT = qw/merge_kconfig success fail info/;
 
 sub merge_kconfig {
     my ($main_kconfig_path, $partial_kconfig_path) = @_;
@@ -68,6 +70,18 @@ sub hashify_conf {
     }
 
     return %hsh;
+}
+
+sub success {
+    return " " . colored(['green'], "✔", " ") . $_[0]
+}
+
+sub info {
+    return " " . colored(['bright_cyan'], "➜", " ") . $_[0]
+}
+
+sub fail {
+    return " " . colored(['red'], "✘", " ") . $_[0]
 }
 
 1;

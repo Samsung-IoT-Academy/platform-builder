@@ -1,15 +1,13 @@
-package KernelBuilder::Board::Artik::Artik710;
+package Builder::Linux::Board::Artik::Artik710;
 
 use v5.10;
 use Carp;
 
-# use File::Copy qw/mv/;
-
 use Moo;
-extends 'KernelBuilder::Board::Artik';
-with    'KernelBuilder::Feature::DeviceTree';
+extends 'Builder::Linux::Board::Artik';
+with    'Builder::Linux::Feature::DeviceTree';
 
-use KernelBuilder;
+use Builder::Linux;
 
 # make_ext4fs utility options
 
@@ -17,6 +15,8 @@ has make_modpart_opts => (
     is => 'lazy',
     builder => \&_build_make_modpart_opts,
 );
+
+##### Builders
 
 sub _build_make_modpart_opts {
     my $self = shift;
@@ -64,6 +64,8 @@ sub _build_make_ext4fs_opts {
     return @opts
 }
 
+##### Moo methods wrappers
+
 around BUILDARGS => sub {
     my ($orig, $class, %args) = @_;
     $args{arch} = "arm64";
@@ -72,11 +74,14 @@ around BUILDARGS => sub {
     return $class->$orig(%args)
 };
 
+##### Board-specific subs
+
 sub _board_specific_preparation {
     my $self = shift;
     my @config_opts = $self->_build_opts("config");
     push @config_opts, $self->config_name;
-    system("make", @config_opts) == 0 or die "Failed create config!";
+    system("make", @config_opts) == 0 or die fail "Failed create config!";
+    say success "Created .config file";
     merge_kconfig(
         $self->build_path . "/.config",
         $self->_kfiles_path->{config} . "/board/unwds-artik-710/4.4.19-tizen/.config"
@@ -89,6 +94,8 @@ sub _board_specific_destruction {
     $self->_revert_patches;
     $self->make_mrproper
 }
+
+##### Private methods
 
 sub _prepare_repo {
     my $self = shift;
@@ -105,8 +112,10 @@ sub _patch_kernel {
     my $self = shift;
     my $cmd_vcs = "git";
     $self->_prepare_repo;
-    my @apply_patch_opts =  ("apply",       $self->_kfiles_path->{patch} . "/mali.patch");
-    system($cmd_vcs, @apply_patch_opts) == 0 or die "Failed patch kernel!";
+    my @apply_patch_opts = ("apply", $self->_kfiles_path->{patch} . "/mali.patch");
+    say info "Called kernel patching";
+    system($cmd_vcs, @apply_patch_opts) == 0 or die fail "Failed patch kernel!";
+    say success "Kernel patched!"
 }
 
 sub _revert_patches {
@@ -115,7 +124,10 @@ sub _revert_patches {
     $self->_prepare_repo;
     my @revert_patch_opts = ("apply", "-R", $self->_kfiles_path->{patch} . "/mali.patch");
     system($cmd_vcs, @revert_patch_opts) == 0 or die "Failed reverting patches!";
+    unlink "drivers/gpu/arm/mali400/r5p2_rel0/__malidrv_build_info.c"
 }
+
+##### Public methods
 
 sub make_ext4fs_mod_part {
     my $self = shift;

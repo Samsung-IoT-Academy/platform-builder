@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
@@ -17,29 +17,40 @@ use DirHandle;
 use Git::Raw::Repository;
 
 use Getopt::Long;
+use YAML::XS qw/LoadFile/;
 
-use KernelBuilder;
-use KernelBuilder::Board::Artik::Artik710;
+use Builder::Linux;
+use Builder::Linux::Board::Artik::Artik710;
 
-my $kernel_src_path;
+my ($kernel_src_path, $build_artifacts_path);
+my $out_path;
 
+# Parse options
 GetOptions(
-    'srcpath|src=s' => \$kernel_src_path
+    'srcpath|src=s' => \$kernel_src_path ,
+    'output|out=s'  => \$build_artifacts_path
 ) or die;
 die unless defined $kernel_src_path;
+
+# Load local configuration
+my $config = LoadFile("artik710-unwired.yaml");
 
 my %make_ext4fs_opts = (
     output_file_path    => $ENV{"HOME"} . "/kernel_build/tizen-sourced/usr/modules.img" ,
 );
-my $out_path = $ENV{'HOME'} . "/kernel_build/tizen-sourced";
+
+$out_path = defined $build_artifacts_path
+    ? $build_artifacts_path
+    : $ENV{'HOME'} . "/kernel_build/tizen-sourced";
+
 make_path($out_path);
 
-my $artik_710_builder = KernelBuilder::Board::Artik::Artik710->new(
+my $artik_710_builder = Builder::Linux::Board::Artik::Artik710->new(
     make_modpart_opts       => \%make_ext4fs_opts ,
 
     build_path              => $out_path ,
-    cross_compile_prefix    => $ENV{"HOME"} . "/.local/toolchain/linaro/gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu/bin/" ,
-    install_mod_path        => $out_path . "/usr/modules" ,
+    cross_compile_prefix    => $ENV{"HOME"} . $config->{"toolchain"}->{"path"} ,
+    install_mod_path        => $out_path . $config->{"path"}->{"install-mod-path"}->{"path"} ,
 
     kernel_src_path         => $kernel_src_path ,
 );

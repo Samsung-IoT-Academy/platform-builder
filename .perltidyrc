@@ -1,0 +1,13 @@
+# PBP .perltidyrc file
+
+-w          # Show all warnings
+-l=82       # Max line width is 82 cols
+-i=4        # Indent level is 4 cols
+-ci=4       # Continuation indent is 4 cols
+-isbc       # Don't indent comments without leading space
+-tso        # Tight secret ops
+-nsfs       # No space for semicolon in for cycle
+-sbc
+-sbt=1      # square brackets tightness
+-pt=2       # parentheses tightness
+-ce         # cuddled else
