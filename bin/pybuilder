@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
 
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python'))
 
-class AnsiTerminal:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-    @classmethod
-    def str_color(cls, string, color):
-        return "{col}{msg}{end}".format(col=color, msg=string, end=cls.ENDC)
+from builder import Terminal
 
 
-print(AnsiTerminal.str_color("hi", AnsiTerminal.OKGREEN))
+print(Terminal.colored("hi", color="red"))

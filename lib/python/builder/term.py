@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 import re
 
+from pprint import pprint as p
+
 
 def colored(colour, str):
     return "{col}{str}{col}".format(col=colour, str=str)
@@ -10,7 +12,7 @@ def success(msg_str):
     return ""
 
 
-class Singleton(metaclass=ABCMeta):
+class Singleton(type):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -20,7 +22,7 @@ class Singleton(metaclass=ABCMeta):
         return cls._instances[cls]
 
 
-class Term(metaclass=Singleton):
+class Term(metaclass=ABCMeta):
     def __init__(self):
         # the subclasses declare class attributes which are numbers.
         # Upon instantiation we define instance attributes, which are the same
@@ -30,13 +32,18 @@ class Term(metaclass=Singleton):
                 value = getattr(self, name)
                 setattr(self, name, self.code_to_chars(value))
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def code_to_chars(cls, code):
         pass
 
+    @classmethod
+    @abstractmethod
+    def colored(cls, string, color):
+        pass
 
-class AnsiTerminal(Term):
+
+class AnsiTerminal(Term, metaclass=Singleton):
     CSI = '\033['
     COLORS = (
         "black",
@@ -105,17 +112,36 @@ class AnsiTerminal(Term):
     RESET_ALL = 0
 
     @classmethod
-    def str_color(cls, string, color):
-        colors_regex = "(P<color>{colors})".format(colors="|".join(cls.COLORS))
-        types_regex = "(P<type>light)?"
-        re_color = re.compile("({c}\s+{t})|({t}\s+{c})".format(
-            c=colors_regex, t=types_regex))
+    def colored(cls, string, *args, color="white"):
+        colors_regex = "(?P<color>{colors})".format(colors="|".join(cls.COLORS))
+        styles_regex = "(?P<style>light)?"
+
+        re_color_prefixed = re.compile("^({t}{ws}{c})$".format(
+            c=colors_regex, t=styles_regex, ws=r"\s*"))
+        re_color_postfixed = re.compile("^({c}{ws}{t})$".format(
+            c=colors_regex, t=styles_regex, ws=r"\s*"))
+
+        for re_ in [re_color_prefixed, re_color_postfixed]:
+            match = re.match(re_, color)
+            if match is not None:
+                match = match.groupdict()
+                break
+
+        p(match)
         try:
-            
-        color = re.match(re_color, color).groupdict()
-        cls_color = getattr(cls, )
-        return "{col}{msg}{end}".format(col=color, msg=string,
-                                        end=cls.FG_RESET)
+            color = "_" + match['color'].upper()
+        except AttributeError:
+            color = "_" + "RESET"
+        try:
+            style = "_" + match['style'].upper()
+        except AttributeError:
+            style = ""
+
+        cls_color = cls.code_to_chars(getattr(cls, "FG" + style + color))
+        end_color = cls.code_to_chars(cls.FG_RESET)
+        return "{col}{msg}{end}".format(col=cls_color,
+                                        msg=string,
+                                        end=end_color)
 
     @classmethod
     def code_to_chars(cls, code):
