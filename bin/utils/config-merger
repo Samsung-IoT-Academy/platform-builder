@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use v5.10;
+use Carp;
+
+use FindBin;
+use lib "$FindBin::Bin/../../lib/perl";
+
+use Getopt::Long;
+
+use Builder::Linux::Utils qw/merge_kconfig/;
+
+__PACKAGE__->main() unless caller;
+
+sub parse_options {
+    my $pkg = shift;
+    my ($main_config, $merged_config);
+
+    GetOptions(
+        'main-config|main=s' => \$main_config,
+        'merged-config|merge=s'       => \$merged_config,
+    ) or croak;
+    croak unless (defined $main_config and defined $merged_config);
+
+    return ($main_config, $merged_config);
+}
+
+sub main {
+    my $pkg = shift;
+    my ($main_config, $merged_config) = parse_options(@ARGV);
+    merge_kconfig($main_config, $merged_config);
+}

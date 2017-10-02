@@ -22,7 +22,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class Term(metaclass=ABCMeta):
+class Term(ABCMeta):
     def __init__(self):
         # the subclasses declare class attributes which are numbers.
         # Upon instantiation we define instance attributes, which are the same
@@ -113,7 +113,8 @@ class AnsiTerminal(Term, metaclass=Singleton):
 
     @classmethod
     def colored(cls, string, *args, color="white"):
-        colors_regex = "(?P<color>{colors})".format(colors="|".join(cls.COLORS))
+        colors_regex = "(?P<color>{colors})".format(
+            colors="|".join(cls.COLORS))
         styles_regex = "(?P<style>light)?"
 
         re_color_prefixed = re.compile("^({t}{ws}{c})$".format(

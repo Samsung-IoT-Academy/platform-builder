@@ -1,10 +1,36 @@
 #!/usr/bin/env python3
-
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python'))
 
-from builder import Terminal
-
+from builder import Terminal    # noqa
+from builder.linux.board.artik import Artik710        # noqa
 
 print(Terminal.colored("hi", color="red"))
+make_ext4fs_args = {
+    "output_file_path": os.path.join(os.environ['HOME'], "kernel_build",
+                                     "tizen-sourced", "usr", "modules.img")
+}
+if sys.argv[1]:
+    out_path = sys.argv[1]
+else:
+    out_path = os.path.join(os.environ['HOME'], "kernel_build",
+                            "tizen-sourced")
+os.makedirs(out_path, mode=0o775, exist_ok=True)
+
+builder_artik710 = Artik710(kernel_src=sys.argv[0],
+                            make_ext4fs_args=make_ext4fs_args,
+                            build_path=out_path,
+                            cc_prefix=os.path.join(os.environ['HOME'],
+                                                   ".local",
+                                                   "toolchain",
+                                                   "linaro",
+                                                   "gcc-linaro-5.4.1-2017.05-x86_64_aarch64-linux-gnu", # noqa
+                                                   "bin"),
+                            install_mod_path=os.path.join(out_path,
+                                                          "usr",
+                                                          "modules"))
+
+builder_artik710.make_vmlinux()
+builder_artik710.make_dtbs()
+builder_artik710.make_modules()

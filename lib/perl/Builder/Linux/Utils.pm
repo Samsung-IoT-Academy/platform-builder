@@ -1,4 +1,4 @@
-package Builder::Linux;
+package Builder::Linux::Utils;
 
 use strict;
 use warnings;
