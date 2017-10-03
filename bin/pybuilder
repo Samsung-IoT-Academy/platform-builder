@@ -11,14 +11,15 @@ make_ext4fs_args = {
     "output_file_path": os.path.join(os.environ['HOME'], "kernel_build",
                                      "tizen-sourced", "usr", "modules.img")
 }
-if sys.argv[1]:
-    out_path = sys.argv[1]
+
+if len(sys.argv) > 2:
+    out_path = sys.argv[2]
 else:
     out_path = os.path.join(os.environ['HOME'], "kernel_build",
                             "tizen-sourced")
 os.makedirs(out_path, mode=0o775, exist_ok=True)
 
-builder_artik710 = Artik710(kernel_src=sys.argv[0],
+builder_artik710 = Artik710(kernel_src=sys.argv[1],
                             make_ext4fs_args=make_ext4fs_args,
                             build_path=out_path,
                             cc_prefix=os.path.join(os.environ['HOME'],

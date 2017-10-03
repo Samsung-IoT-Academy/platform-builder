@@ -12,8 +12,8 @@ class Artik(object, metaclass=ABCMeta):
     def __init__(self, *args,
                  arch="arm",
                  cross_compile="arm-linux-gnueabihf-", cc_prefix="",
-                 kernel_src, build_path=None, install_mod_path=""):
-        super(self.__class__, self).__init__()
+                 kernel_src, build_path=None, install_mod_path="", **kwargs):
+        super().__init__(**kwargs)
 
         self.arch = arch
         self.cross_compile = cross_compile
@@ -125,11 +125,10 @@ class Artik710(DeviceTreeMixin, Artik):
     }
 
     def __init__(self, *args, make_ext4fs_args={}, kernel_src, **kwargs):
-        Artik.__init__(self, arch="arm64", cross_compile="aarch64-linux-gnu-",
-                       kernel_src=kernel_src,
-                       **kwargs)
-        DeviceTreeMixin.__init__(self)
-
+        super().__init__(arch="arm64",
+                         cross_compile="aarch64-linux-gnu-",
+                         kernel_src=kernel_src,
+                         **kwargs)
         if "output_file_path" not in make_ext4fs_args:
             raise Exception
 
@@ -152,6 +151,11 @@ class Artik710(DeviceTreeMixin, Artik):
     def __delete__(self):
         self.revert_patches()
         self.make_mrproper()
+
+    def _get_base_make_vars(self):
+        from pprint import pprint as pp
+        pp(self.__class__.__dict__)
+        return self.__class__.__base_make_vars
 
     def _build_make_ext4fs_opts(self):
         translation_table = {
