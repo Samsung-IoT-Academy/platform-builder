@@ -228,6 +228,9 @@ class Artik710(DeviceTreeMixin, Artik):
     def make_config(self):
         self.make_caller("config")
 
+    def make_dtbs(self):
+        super().make_dtbs()
+
     def make_ext4fs_mod_part(self):
         opts = self._build_make_ext4fs_opts()
         opts.insert(0, "make_ext4fs")

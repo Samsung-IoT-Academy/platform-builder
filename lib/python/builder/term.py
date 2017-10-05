@@ -1,8 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import re
 
-from pprint import pprint as p
-
 
 def colored(colour, str):
     return "{col}{str}{col}".format(col=colour, str=str)
@@ -128,7 +126,6 @@ class AnsiTerminal(Term, metaclass=Singleton):
                 match = match.groupdict()
                 break
 
-        p(match)
         try:
             color = "_" + match['color'].upper()
         except AttributeError:
@@ -140,9 +137,13 @@ class AnsiTerminal(Term, metaclass=Singleton):
 
         cls_color = cls.code_to_chars(getattr(cls, "FG" + style + color))
         end_color = cls.code_to_chars(cls.FG_RESET)
-        return "{col}{msg}{end}".format(col=cls_color,
-                                        msg=string,
-                                        end=end_color)
+        colored_str = "{col}{msg}{end}".format(col=cls_color,
+                                               msg=string,
+                                               end=end_color)
+        for s in args:
+            colored_str += s
+
+        return colored_str
 
     @classmethod
     def code_to_chars(cls, code):

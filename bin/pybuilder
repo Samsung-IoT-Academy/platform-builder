@@ -6,11 +6,16 @@ sys.path.append(os.path.join(os.path.dirname(sys.path[0]), 'lib', 'python'))
 from builder import Terminal    # noqa
 from builder.linux.board.artik import Artik710        # noqa
 
-print(Terminal.colored("hi", color="red"))
 make_ext4fs_args = {
     "output_file_path": os.path.join(os.environ['HOME'], "kernel_build",
                                      "tizen-sourced", "usr", "modules.img")
 }
+
+print(Terminal.colored(" ✔ ", "Done", color="light green"))
+print(Terminal.colored(" ✔ ", "Done absolutely right", color="green"))
+
+if len(sys.argv) == 1:
+    exit()
 
 if len(sys.argv) > 2:
     out_path = sys.argv[2]
